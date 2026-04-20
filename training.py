@@ -12,7 +12,7 @@ def train(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model.to(device)
-    optimizer, scheduler = model.configure_optimizer(len(train_loader), epochs)
+    optimizer = model.configure_optimizer(num_samples=len(train_loader), epochs=epochs)
 
     for epoch in range(epochs):
         model.train()
@@ -28,12 +28,10 @@ def train(
             loss = model.training_step((inputs, labels), epoch=epoch, epochs=epochs)
             loss.backward()
             optimizer.step()
-            scheduler.step()  # Update learning rate
             running_loss += loss.item()
 
-            lr = scheduler.get_last_lr()[0]
             progress_bar.set_postfix(
-                {"loss": running_loss / (progress_bar.n + 1), "lr": lr}
+                {"loss": running_loss / (progress_bar.n + 1)}
             )
 
         model.eval()

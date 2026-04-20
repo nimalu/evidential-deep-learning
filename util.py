@@ -9,6 +9,9 @@ from typing import List, Optional
 import matplotlib.gridspec as gridspec
 
 
+CIFAR_10_STATS = ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+
+
 def show_images(dataloader, n_images=8, n_cols=4):
     images = []
     for batch in dataloader:
@@ -24,8 +27,9 @@ def show_images(dataloader, n_images=8, n_cols=4):
 
     for i in range(n_images):
         image = images[i].cpu().numpy()
-        img_display = image.reshape(28, 28)
-        axes[i].imshow(img_display, cmap="gray", vmin=0, vmax=1)
+        image = np.transpose(image, (1, 2, 0)) 
+        image = np.clip(image, 0, 1)  # Clip to valid range
+        axes[i].imshow(image)
         axes[i].axis("off")
 
     for i in range(n_images, len(axes)):
@@ -67,7 +71,7 @@ class SoftmaxBrowser:
 
         self.ax_img.axis("off")
         self.im = self.ax_img.imshow(
-            self.images[self.index].reshape(28, 28).cpu().numpy(), cmap="gray"
+            self.images[self.index].cpu().numpy().transpose(1, 2, 0)
         )
 
         self.btn1 = Button(self.ax_btn1, "←")
@@ -97,15 +101,15 @@ class SoftmaxBrowser:
         self.timer.start()
 
     def update_image(self):
-        img = self.current_image().reshape(28, 28)
-        self.im.set_array(img.cpu().numpy())
+        img = self.current_image().cpu().numpy().transpose(1, 2, 0)
+        self.im.set_array(img)
         self.fig.canvas.draw_idle()
 
     def update_preds(self):
         self.timer.stop()
-        img = self.current_image().reshape(28, 28)
+        img = self.current_image()
 
-        logits = self.model(img.unsqueeze(0).unsqueeze(0))
+        logits = self.model(img.unsqueeze(0))
         logits = logits.squeeze(0).detach().cpu().numpy()
         preds = np.exp(logits) / np.sum(np.exp(logits))
 
