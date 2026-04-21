@@ -12,6 +12,12 @@ import matplotlib.gridspec as gridspec
 CIFAR_10_STATS = ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 
 
+def _unnormalize_cifar(img: np.ndarray) -> np.ndarray:
+    mean = np.asarray(CIFAR_10_STATS[0], dtype=img.dtype).reshape(3, 1, 1)
+    std = np.asarray(CIFAR_10_STATS[1], dtype=img.dtype).reshape(3, 1, 1)
+    return img * std + mean
+
+
 def show_images(dataloader, n_images=8, n_cols=4):
     images = []
     for batch in dataloader:
@@ -27,7 +33,8 @@ def show_images(dataloader, n_images=8, n_cols=4):
 
     for i in range(n_images):
         image = images[i].cpu().numpy()
-        image = np.transpose(image, (1, 2, 0)) 
+        image = _unnormalize_cifar(image)
+        image = np.transpose(image, (1, 2, 0))
         image = np.clip(image, 0, 1)  # Clip to valid range
         axes[i].imshow(image)
         axes[i].axis("off")
@@ -41,8 +48,11 @@ def show_images(dataloader, n_images=8, n_cols=4):
 
 class SoftmaxBrowser:
     def __init__(
-        self, images, model, class_names, with_noise=False, debouncing_time=50
+        self, dataloader, model, class_names, with_noise=False, debouncing_time=50
     ) -> None:
+        plt.close()
+
+        images, _ = next(iter(dataloader))
         self.images = images
         self.model = model
         self.class_names = class_names
@@ -51,7 +61,7 @@ class SoftmaxBrowser:
 
         self.fig = plt.figure(layout="constrained", figsize=(9, 5))
 
-        gs = gridspec.GridSpec(1, 2, figure=self.fig, width_ratios=[1, 2])
+        gs = gridspec.GridSpec(1, 2, figure=self.fig, width_ratios=[1, 3])
         self.subfig_left = self.fig.add_subfigure(gs[0, 0])
         self.subfig_right = self.fig.add_subfigure(gs[0, 1])
 
@@ -71,7 +81,7 @@ class SoftmaxBrowser:
 
         self.ax_img.axis("off")
         self.im = self.ax_img.imshow(
-            self.images[self.index].cpu().numpy().transpose(1, 2, 0)
+            _unnormalize_cifar(self.images[self.index].cpu().numpy()).transpose(1, 2, 0)
         )
 
         self.btn1 = Button(self.ax_btn1, "←")
@@ -101,7 +111,9 @@ class SoftmaxBrowser:
         self.timer.start()
 
     def update_image(self):
-        img = self.current_image().cpu().numpy().transpose(1, 2, 0)
+        img = self.current_image().cpu().numpy()
+        img = _unnormalize_cifar(img)
+        img = img.transpose(1, 2, 0)
         self.im.set_array(img)
         self.fig.canvas.draw_idle()
 
@@ -233,6 +245,8 @@ class InteractiveDirichlet:
     def __init__(
         self, init_alpha: Optional[List[float]] = None, max_alpha: float = 10.0
     ):
+        plt.close()
+
         if init_alpha is None:
             init_alpha = [2.0, 2.0, 2.0]
 
@@ -350,16 +364,19 @@ def compute_edl_metrics(evidence):
 
 class EDLBrowser:
     def __init__(
-        self, images, model, class_names, with_noise=False, debouncing_time=50
+        self, loader, model, class_names, with_noise=False, debouncing_time=50
     ) -> None:
+        plt.close()
+        images, _ = next(iter(loader))
+
         self.images = images
-        self.model = model
+        self.model = model.to("cpu").eval()
         self.class_names = class_names
         self.with_noise = with_noise
         self.index = 0
 
         self.fig = plt.figure(layout="constrained", figsize=(9, 5))
-        gs = gridspec.GridSpec(1, 2, figure=self.fig, width_ratios=[1, 2])
+        gs = gridspec.GridSpec(1, 2, figure=self.fig, width_ratios=[1, 3])
         self.subfig_left = self.fig.add_subfigure(gs[0, 0])
         self.subfig_right = self.fig.add_subfigure(gs[0, 1])
 
@@ -382,7 +399,7 @@ class EDLBrowser:
 
         self.ax_img.axis("off")
         self.im = self.ax_img.imshow(
-            self.images[self.index].reshape(28, 28).cpu().numpy(), cmap="gray"
+            _unnormalize_cifar(self.images[self.index].cpu().numpy()).transpose(1, 2, 0)
         )
 
         self.btn1 = Button(self.ax_btn1, "←")
@@ -412,15 +429,17 @@ class EDLBrowser:
         return img
 
     def update_image(self):
-        img = self.current_image().reshape(28, 28)
-        self.im.set_array(img.cpu().numpy())
+        img = self.current_image()
+        img = _unnormalize_cifar(img.cpu().numpy())
+        img = img.transpose(1, 2, 0)
+        self.im.set_array(img)
         self.fig.canvas.draw_idle()
 
     def update_preds(self):
         self.timer.stop()
-        img = self.current_image().reshape(28, 28)
+        img = self.current_image()
 
-        evidence = self.model(img.unsqueeze(0).unsqueeze(0))
+        evidence = self.model(img.unsqueeze(0).to("cpu"))
         metrics = compute_edl_metrics(evidence.squeeze(0))
         evidence = metrics["evidence"]
         preds = metrics["probs"]

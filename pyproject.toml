@@ -8,6 +8,7 @@ dependencies = [
     "ipykernel>=7.1.0",
     "ipympl>=0.10.0",
     "ipywidgets>=8.1.8",
+    "jupyter>=1.1.1",
     "matplotlib>=3.10.8",
     "ruff>=0.14.14",
     "scikit-learn>=1.8.0",
@@ -18,10 +19,10 @@ dependencies = [
     "tqdm>=4.66.5",
 ]
 
-[tool.uv.sources]
-torch = { index = "pytorch-cpu" }
-torchvision = { index = "pytorch-cpu" }
+# [tool.uv.sources]
+# torch = { index = "pytorch-cpu" }
+# torchvision = { index = "pytorch-cpu" }
 
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+# [[tool.uv.index]]
+# name = "pytorch-cpu"
+# url = "https://download.pytorch.org/whl/cpu"
