@@ -13,6 +13,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class AddGaussianNoise(object):
     """Add Gaussian noise to a tensor image with given probability."""
+
     def __init__(self, mean=0.0, std=0.05, p=0.5):
         self.mean = mean
         self.std = std
@@ -22,7 +23,6 @@ class AddGaussianNoise(object):
         if torch.rand(1).item() < self.p:
             return tensor + torch.randn_like(tensor) * self.std + self.mean
         return tensor
-
 
 
 def build_cifar_loaders(train_batch_size=64, test_batch_size=64):

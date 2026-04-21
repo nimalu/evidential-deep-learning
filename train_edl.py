@@ -24,7 +24,7 @@ def train_model(
     test_loader: torch.utils.data.DataLoader,
     learning_rate: float = LEARNING_RATE,
     epochs: int = EPOCHS,
-    T=20
+    T=20,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
