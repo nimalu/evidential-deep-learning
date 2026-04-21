@@ -462,11 +462,11 @@ class EDLBrowser:
         self.ax_unc.clear()
         self.ax_unc.axis("off")
         metrics_text = (
-            f"Vacuity: {metrics['vacuity']:.3f}\n"
-            f"Predictive Entropy: {metrics['predictive_entropy']:.3f}  "
-            f"Expected Entropy: {metrics['expected_entropy']:.3f}\n"
-            f"Mutual Information: {metrics['mutual_information']:.3f}  "
-            f"Variance: {metrics['variance'].max():.3f}"
+            f"Predictive Entropy (total.): {metrics['predictive_entropy']:.3f}\n"
+            f"Vacuity (ep.): {metrics['vacuity']:.3f}\n"
+            f"Mutual Information (ep.): {metrics['mutual_information']:.3f}\n"
+            f"Exp. Variance (ep.): {metrics['variance'].max():.3f}\n"
+            f"Exp. Entropy (al.): {metrics['expected_entropy']:.3f}\n"
         )
         self.ax_unc.text(
             0.05,
