@@ -340,7 +340,6 @@ def compute_edl_metrics(evidence):
     alpha = evidence + 1.0
     num_classes = alpha.shape[0]
     strength = float(np.sum(alpha))
-    evidence = alpha - 1.0
     probs = alpha / strength
 
     vacuity = num_classes / strength
@@ -453,11 +452,12 @@ class EDLBrowser:
         self.ax_evidence.set_ylabel("Evidence", color="lightcoral", fontweight="bold")
         self.ax_evidence.set_xticks(range(len(preds)))
         self.ax_evidence.set_xticklabels(self.class_names, rotation=45, ha="right")
+        self.ax_evidence.set_ylim(0, max(evidence.max() * 1.2, 3))
 
         self.ax_preds.bar(np.arange(len(preds)) + 0.15, preds, 0.25, color="orange")
         self.ax_preds.yaxis.set_label_position("right")
         self.ax_preds.set_ylabel("Probabilities", color="orange", fontweight="bold")
-        self.ax_preds.set_ylim(0, 1.0)
+        self.ax_preds.set_ylim(0, 1.05)
 
         self.ax_unc.clear()
         self.ax_unc.axis("off")

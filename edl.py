@@ -11,12 +11,27 @@ import os
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def build_cifar_loaders():
+class AddGaussianNoise(object):
+    """Add Gaussian noise to a tensor image with given probability."""
+    def __init__(self, mean=0.0, std=0.05, p=0.5):
+        self.mean = mean
+        self.std = std
+        self.p = p
+
+    def __call__(self, tensor):
+        if torch.rand(1).item() < self.p:
+            return tensor + torch.randn_like(tensor) * self.std + self.mean
+        return tensor
+
+
+
+def build_cifar_loaders(train_batch_size=64, test_batch_size=64):
     cifar10_transform_train = T.Compose(
         [
             T.RandomCrop(32, padding=4),
             T.RandomHorizontalFlip(p=0.5),
             T.ToTensor(),
+            AddGaussianNoise(mean=0.0, std=0.05, p=0.5),
             T.Normalize(CIFAR_10_STATS[0], CIFAR_10_STATS[1]),
         ]
     )
@@ -31,13 +46,13 @@ def build_cifar_loaders():
     )
     cifar10_loader_train = DataLoader(
         cifar10_train_set,
-        batch_size=64,
+        batch_size=train_batch_size,
         shuffle=True,
         num_workers=min((os.cpu_count() or 2) - 1, 4),
     )
     cifar10_loader_test = DataLoader(
         cifar10_test_set,
-        batch_size=64,
+        batch_size=test_batch_size,
         shuffle=False,
         num_workers=min((os.cpu_count() or 2) - 1, 4),
     )
@@ -47,7 +62,7 @@ def build_cifar_loaders():
         root="./data", train=False, download=True, transform=cifar10_transform_test
     )
     cifar100_loader_test = DataLoader(
-        cifar100_test_set, batch_size=32, shuffle=False, num_workers=2
+        cifar100_test_set, batch_size=test_batch_size, shuffle=False, num_workers=2
     )
     cifar100_classes = cifar100_test_set.classes
     return {
@@ -62,12 +77,15 @@ def build_cifar_loaders():
 class EDLModel(nn.Module):
     def __init__(
         self,
-        pretrained=True,
+        pretrained=False,
     ):
         super().__init__()
         self.model: nn.Module = torch.hub.load(
             "chenyaofo/pytorch-cifar-models", "cifar10_resnet20", pretrained=pretrained
         )  # type: ignore
+        if pretrained:
+            # reset final layer to output evidence instead of logits
+            self.model.fc = nn.Linear(self.model.fc.in_features, 10)
 
     def forward(self, x):
         return F.softplus(self.model(x))
@@ -112,3 +130,23 @@ def edl_loss(
     annealing_coef = min(1.0, epoch / T)
 
     return mse + gamma * annealing_coef * kl
+
+
+def validate_model(model: nn.Module, test_loader: DataLoader):
+    device = next(model.parameters()).device
+
+    model.eval()
+    correct = total = 0
+    total_loss = 0.0
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            evidence = model(inputs)
+            loss = edl_loss(evidence, labels, epoch=0, num_classes=10)
+            total_loss += loss.item()
+            _, predicted = torch.max(evidence, dim=1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    accuracy = correct / total
+
+    return accuracy, total_loss / len(test_loader)
