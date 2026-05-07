@@ -1,9 +1,13 @@
 # Evidential Deep Learning Experiments
 
-Small PyTorch project with two notebooks:
+Small PyTorch project implementing **Evidential Deep Learning**, a framework for uncertainty quantification in neural networks. Instead of producing point estimates, evidential models learn to output probability distributions over their predictions, enabling principled uncertainty estimates for both aleatoric (data) and epistemic (model) uncertainty.
 
-- `mnist-evidential-deep-leaarning.ipynb` (classification)
+This implementation includes two notebooks demonstrating to approaches:
+
+- `cifar-evidential-deep-learning.ipynb` (classification)
 - `deep-evidential-regression.ipynb` (regression)
+
+
 
 ## Quick Setup
 

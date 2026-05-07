@@ -7,6 +7,7 @@ import torchvision
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
 import os
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -139,7 +140,7 @@ def validate_model(model: nn.Module, test_loader: DataLoader):
     correct = total = 0
     total_loss = 0.0
     with torch.no_grad():
-        for inputs, labels in test_loader:
+        for inputs, labels in tqdm(test_loader, desc="Validating"):
             inputs, labels = inputs.to(device), labels.to(device)
             evidence = model(inputs)
             loss = edl_loss(evidence, labels, epoch=0, num_classes=10)
